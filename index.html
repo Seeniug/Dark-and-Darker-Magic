@@ -898,6 +898,11 @@
       updateHpBar();
     }
 
+    function resetHpSimulation() {
+      hpDamageApplied = false;
+      updateHpBar();
+    }
+
     function applyDefaultValues() {
       inputs.weaponDamage.value = 6;
       inputs.magicPower.value = 20;
@@ -1253,8 +1258,8 @@
     openHpView.addEventListener("click", showHpView);
     showDamageDealt.addEventListener("click", applyHpDamage);
     backToCalculator.addEventListener("click", showCalculatorView);
-    targetHp.addEventListener("input", updateHpBar);
-    targetHp.addEventListener("change", updateHpBar);
+    targetHp.addEventListener("input", resetHpSimulation);
+    targetHp.addEventListener("change", resetHpSimulation);
 
     applyDefaultValues();
     updateSpellOptions();
