@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark and Darker Bench Magical Calculator</title>
+  <style>
+    :root {
+      --bg: #111014;
+      --panel: #1b1821;
+      --panel-soft: #241f2c;
+      --border: #3a3145;
+      --text: #f2edf7;
+      --muted: #b7aebf;
+      --orange: #e08a32;
+      --orange-soft: #ffb15d;
+      --purple: #8f5cff;
+      --purple-soft: #c7adff;
+      --danger: #ff645d;
+      --shadow: rgba(0, 0, 0, 0.38);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(143, 92, 255, 0.22), transparent 34rem),
+        radial-gradient(circle at bottom right, rgba(224, 138, 50, 0.18), transparent 30rem),
+        linear-gradient(135deg, #0d0c10 0%, var(--bg) 45%, #17111d 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 14px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1;
+      color: #fff8ef;
+      text-shadow: 0 0 28px rgba(224, 138, 50, 0.32);
+    }
+
+    .class-select {
+      width: auto;
+      min-width: 220px;
+      color: #fff8ef;
+      border-color: rgba(224, 138, 50, 0.7);
+      background: rgba(18, 16, 23, 0.92);
+      font-weight: 700;
+    }
+
+    .calculator {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+      gap: 18px;
+    }
+
+    .panel {
+      background: rgba(27, 24, 33, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 20px 60px var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, rgba(224, 138, 50, 0.14), rgba(143, 92, 255, 0.12));
+    }
+
+    .panel-title h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .spell-note {
+      color: var(--orange-soft);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: end;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field.hidden,
+    .checkbox-field.hidden,
+    .toggle-group.hidden {
+      display: none;
+    }
+
+    .class-options {
+      grid-column: 1 / -1;
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 12px;
+      background: rgba(18, 16, 23, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 8px;
+    }
+
+    .class-options.visible {
+      display: grid;
+    }
+
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      min-height: 44px;
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .checkbox-field input {
+      width: 18px;
+      min-height: 18px;
+      height: 18px;
+      accent-color: var(--purple);
+    }
+
+    .toggle-group {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 8px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 5px;
+      background: #121017;
+      border: 1px solid #44394f;
+      border-radius: 8px;
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 8px;
+      color: var(--muted);
+      border-radius: 6px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .segmented input:checked + span {
+      color: #fff8ef;
+      background: linear-gradient(90deg, rgba(224, 138, 50, 0.32), rgba(143, 92, 255, 0.28));
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 650;
+    }
+
+    .field:not(.full) label {
+      min-height: 3em;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    select,
+    input {
+      width: 100%;
+      min-height: 44px;
+      color: var(--text);
+      background: #121017;
+      border: 1px solid #44394f;
+      border-radius: 7px;
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(143, 92, 255, 0.18);
+      background: #16121d;
+    }
+
+    .results {
+      padding: 18px;
+    }
+
+    .damage-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .damage-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--panel-soft);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 8px;
+    }
+
+    .damage-row.primary {
+      border-color: rgba(224, 138, 50, 0.65);
+      background: linear-gradient(90deg, rgba(224, 138, 50, 0.16), rgba(143, 92, 255, 0.1));
+    }
+
+    .part {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .part strong {
+      font-size: 1rem;
+    }
+
+    .part span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .damage {
+      color: var(--orange-soft);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.8rem, 5vw, 2.7rem);
+      font-weight: 700;
+      line-height: 1;
+      text-shadow: 0 0 20px rgba(224, 138, 50, 0.22);
+    }
+
+    .footer-total {
+      margin-top: 18px;
+      padding: 18px;
+      text-align: center;
+      background: #120f17;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-total span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .footer-total strong {
+      display: block;
+      margin-top: 6px;
+      color: var(--purple-soft);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.4rem, 8vw, 4.2rem);
+      line-height: 1;
+    }
+
+    .formula {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 800px) {
+      .calculator {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 18px 10px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+
+      .class-options {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .spell-note {
+        white-space: normal;
+      }
+
+      .field:not(.full) label {
+        min-height: 0;
+      }
+
+      .damage-row {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="title-row">
+        <h1>Bench Magical Calculator</h1>
+        <select class="class-select" id="characterClass" aria-label="Character class">
+          <option value="warlock">Warlock</option>
+          <option value="wizard">Wizard</option>
+        </select>
+      </div>
+    </header>
+
+    <section class="calculator" aria-label="Class magic damage calculator">
+      <div class="panel">
+        <div class="panel-title">
+          <h2>Inputs</h2>
+        </div>
+
+        <div class="controls">
+          <div class="field full">
+            <label for="spell">Spell Selection</label>
+            <select id="spell"></select>
+          </div>
+
+          <div class="field" data-input="weaponDamage">
+            <label for="weaponDamage">Magical Weapon Damage</label>
+            <input id="weaponDamage" type="number" value="6" step="0.1">
+          </div>
+
+          <div class="field" data-input="magicPower">
+            <label for="magicPower">Magic Power Bonus %</label>
+            <input id="magicPower" type="number" value="20" step="0.1">
+          </div>
+
+          <div class="field" data-input="additionalDamage">
+            <label for="additionalDamage">Additional Magical Damage</label>
+            <input id="additionalDamage" type="number" value="5" step="0.1">
+          </div>
+
+          <div class="field" data-input="magicalHealing">
+            <label for="magicalHealing">Magical Healing</label>
+            <input id="magicalHealing" type="number" value="0" step="0.1">
+          </div>
+
+          <div class="field" data-input="mdr">
+            <label for="mdr">Target Magic Damage Reduction %</label>
+            <input id="mdr" type="number" value="0" step="0.1">
+          </div>
+
+          <div class="field" data-input="projectileReduction">
+            <label for="projectileReduction">Target Projectile Damage Reduction %</label>
+            <input id="projectileReduction" type="number" value="0" step="0.1">
+          </div>
+
+          <div class="field" data-input="penetration">
+            <label for="penetration">Magic Penetration %</label>
+            <input id="penetration" type="number" value="5" step="0.1">
+          </div>
+
+          <div class="field full" data-input="debuffDuration">
+            <label for="debuffDuration">Target Debuff Duration %</label>
+            <input id="debuffDuration" type="number" value="0" step="0.1">
+          </div>
+
+          <div class="class-options" id="warlockOptions">
+            <div class="toggle-group" data-option="tortureMasterySource">
+              <label>Torture Mastery Source</label>
+              <div class="segmented">
+                <label>
+                  <input type="radio" name="tortureMasterySource" value="curse" checked>
+                  <span>Curse Of Pain</span>
+                </label>
+                <label>
+                  <input type="radio" name="tortureMasterySource" value="sacrifice">
+                  <span>Power Of Sacrifice</span>
+                </label>
+              </div>
+            </div>
+
+            <label class="checkbox-field" for="curseMastery" data-option="curseMastery">
+              <span>Curse Mastery</span>
+              <input id="curseMastery" type="checkbox">
+            </label>
+
+            <label class="checkbox-field" for="vampirism" data-option="vampirism">
+              <span>Vampirism</span>
+              <input id="vampirism" type="checkbox">
+            </label>
+
+            <label class="checkbox-field" for="cow" data-option="cow" title="Curse of Weakness">
+              <span>CoW</span>
+              <input id="cow" type="checkbox">
+            </label>
+          </div>
+
+          <div class="class-options" id="wizardOptions">
+            <label class="checkbox-field" for="fireMastery" data-option="fireMastery">
+              <span>Fire Mastery</span>
+              <input id="fireMastery" type="checkbox">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h2 id="resultTitle">Total Damage Dealt</h2>
+        </div>
+
+        <div class="results">
+          <div class="damage-list" id="damageList"></div>
+        </div>
+
+        <div class="footer-total">
+          <span id="selectedLabel">Selected Result</span>
+          <strong id="mainTotal">0.0</strong>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const classSpells = {
+      warlock: [
+        {
+          id: "curse",
+          name: "Curse Of Pain",
+          label: "Curse Of Pain",
+          baseDamage: 15,
+          scaling: 1,
+          isProjectile: false,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "projectileReduction",
+            "penetration",
+            "debuffDuration",
+            "curseMastery",
+            "cow"
+          ],
+          dot: {
+            name: "Curse of Pain Damage Over Time",
+            baseDamage: 15,
+            scaling: 0.5,
+            isProjectile: false,
+            durationSeconds: 8
+          }
+        },
+        {
+          id: "bolt",
+          name: "Bolt of Darkness",
+          label: "Bolt of Darkness",
+          baseDamage: 20,
+          scaling: 1,
+          isProjectile: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "projectileReduction",
+            "penetration",
+            "cow"
+          ]
+        },
+        {
+          id: "tortureMasteryHealing",
+          name: "Torture Mastery Healing",
+          label: "Torture Mastery Healing",
+          type: "healingOverTime",
+          durationSeconds: 8,
+          visibleInputs: [
+            "magicPower",
+            "magicalHealing",
+            "debuffDuration",
+            "tortureMasterySource",
+            "curseMastery",
+            "vampirism"
+          ]
+        },
+        {
+          id: "powerOfSacrifice",
+          name: "Power Of Sacrifice",
+          label: "Power Of Sacrifice",
+          type: "damageOverTime",
+          damagePerSecond: 3,
+          durationSeconds: 12,
+          isProjectile: false,
+          noScaling: true,
+          visibleInputs: [
+            "mdr",
+            "penetration",
+            "debuffDuration",
+            "curseMastery",
+            "cow"
+          ]
+        }
+      ],
+      wizard: [
+        {
+          id: "iceBolt",
+          name: "Ice Bolt",
+          label: "Ice Bolt",
+          baseDamage: 30,
+          scaling: 1,
+          isProjectile: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "projectileReduction",
+            "penetration"
+          ]
+        },
+        {
+          id: "zap",
+          name: "Zap",
+          label: "Zap",
+          baseDamage: 20,
+          scaling: 1,
+          isProjectile: false,
+          fireMastery: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration",
+            "debuffDuration",
+            "fireMastery"
+          ],
+          dot: {
+            name: "Zap Damage Over Time",
+            baseDamage: 1,
+            scaling: 0.5,
+            isProjectile: false,
+            durationSeconds: 1,
+            perSecond: true
+          }
+        },
+        {
+          id: "fireball",
+          name: "Fireball",
+          label: "Fireball",
+          type: "fireball",
+          fireMastery: true,
+          direct: {
+            name: "Direct Hit",
+            baseDamage: 35,
+            scaling: 1,
+            isProjectile: true
+          },
+          splash: {
+            name: "Splash Damage",
+            baseDamage: 10,
+            scaling: 1,
+            isProjectile: false
+          },
+          dot: {
+            name: "Total Burn Damage",
+            baseDamage: 3,
+            scaling: 0.5,
+            isProjectile: false,
+            durationSeconds: 2,
+            perSecond: true
+          },
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "projectileReduction",
+            "penetration",
+            "debuffDuration",
+            "fireMastery"
+          ]
+        },
+        {
+          id: "explosion",
+          name: "Explosion",
+          label: "Explosion",
+          baseDamage: 25,
+          scaling: 1,
+          isProjectile: false,
+          fireMastery: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration",
+            "debuffDuration",
+            "fireMastery"
+          ],
+          dot: {
+            name: "Explosion Damage Over Time",
+            baseDamage: 3,
+            scaling: 0.5,
+            isProjectile: false,
+            durationSeconds: 2,
+            perSecond: true
+          }
+        }
+      ]
+    };
+
+    const hitLocations = [
+      { name: "Head", bonus: 0.5 },
+      { name: "Body", bonus: 0 },
+      { name: "Arms", bonus: -0.2 },
+      { name: "Legs", bonus: -0.4 },
+      { name: "Hands/Feet", bonus: -0.5 }
+    ];
+
+    const inputs = {
+      characterClass: document.getElementById("characterClass"),
+      spell: document.getElementById("spell"),
+      weaponDamage: document.getElementById("weaponDamage"),
+      magicPower: document.getElementById("magicPower"),
+      additionalDamage: document.getElementById("additionalDamage"),
+      magicalHealing: document.getElementById("magicalHealing"),
+      mdr: document.getElementById("mdr"),
+      projectileReduction: document.getElementById("projectileReduction"),
+      penetration: document.getElementById("penetration"),
+      debuffDuration: document.getElementById("debuffDuration"),
+      curseMastery: document.getElementById("curseMastery"),
+      vampirism: document.getElementById("vampirism"),
+      cow: document.getElementById("cow"),
+      fireMastery: document.getElementById("fireMastery"),
+      tortureMasterySource: document.querySelectorAll("input[name='tortureMasterySource']")
+    };
+
+    const damageList = document.getElementById("damageList");
+    const mainTotal = document.getElementById("mainTotal");
+    const selectedLabel = document.getElementById("selectedLabel");
+    const resultTitle = document.getElementById("resultTitle");
+    const warlockOptions = document.getElementById("warlockOptions");
+    const wizardOptions = document.getElementById("wizardOptions");
+    const inputFields = document.querySelectorAll("[data-input]");
+    const warlockOptionFields = document.querySelectorAll("[data-option]");
+
+    function numberValue(input) {
+      const value = Number(input.value);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function percentValue(input) {
+      return numberValue(input) / 100;
+    }
+
+    function floorToOneDecimal(value) {
+      return (Math.floor(value * 10) / 10).toFixed(1);
+    }
+
+    function floorToTwoDecimals(value) {
+      return (Math.floor(value * 100) / 100).toFixed(2);
+    }
+
+    function applyDefaultValues() {
+      inputs.weaponDamage.value = 6;
+      inputs.magicPower.value = 20;
+      inputs.additionalDamage.value = 5;
+      inputs.magicalHealing.value = 0;
+      inputs.mdr.value = 0;
+      inputs.projectileReduction.value = 0;
+      inputs.penetration.value = 5;
+      inputs.debuffDuration.value = 0;
+      inputs.curseMastery.checked = false;
+      inputs.vampirism.checked = false;
+      inputs.cow.checked = false;
+      inputs.fireMastery.checked = false;
+      inputs.tortureMasterySource.forEach((input) => {
+        input.checked = input.value === "curse";
+      });
+    }
+
+    function getCurrentSpell() {
+      const spells = classSpells[inputs.characterClass.value];
+      return spells.find((spell) => spell.id === inputs.spell.value) || spells[0];
+    }
+
+    function updateSpellOptions() {
+      const spells = classSpells[inputs.characterClass.value];
+      inputs.spell.innerHTML = spells.map((spell) => (
+        `<option value="${spell.id}">${spell.label}</option>`
+      )).join("");
+      warlockOptions.classList.toggle("visible", inputs.characterClass.value === "warlock");
+      wizardOptions.classList.toggle("visible", inputs.characterClass.value === "wizard");
+    }
+
+    function updateVisibleInputs(spell) {
+      const visibleInputs = new Set(spell.visibleInputs || []);
+
+      inputFields.forEach((field) => {
+        field.classList.toggle("hidden", !visibleInputs.has(field.dataset.input));
+      });
+
+      warlockOptionFields.forEach((field) => {
+        field.classList.toggle("hidden", !visibleInputs.has(field.dataset.option));
+      });
+
+      const warlockHasVisibleOptions = Boolean(warlockOptions.querySelector("[data-option]:not(.hidden)"));
+      const wizardHasVisibleOptions = Boolean(wizardOptions.querySelector("[data-option]:not(.hidden)"));
+      warlockOptions.classList.toggle("visible", inputs.characterClass.value === "warlock" && warlockHasVisibleOptions);
+      wizardOptions.classList.toggle("visible", inputs.characterClass.value === "wizard" && wizardHasVisibleOptions);
+    }
+
+    function getEffectiveMdrMultiplier() {
+      const magicDamageReduction = getCowAdjustedMdr();
+      const magicPenetration = percentValue(inputs.penetration);
+      const effectiveMdr = magicDamageReduction * (1 - magicPenetration);
+      return 1 - effectiveMdr;
+    }
+
+    function isCowActive() {
+      const spell = getCurrentSpell();
+      const visibleInputs = spell.visibleInputs || [];
+      return inputs.characterClass.value === "warlock"
+        && visibleInputs.includes("cow")
+        && inputs.cow.checked;
+    }
+
+    function getCowAdjustedMdr() {
+      const magicDamageReduction = percentValue(inputs.mdr);
+      return isCowActive() ? magicDamageReduction * 0.85 : magicDamageReduction;
+    }
+
+    function getSelectedTortureMasterySource() {
+      return Array.from(inputs.tortureMasterySource).find((input) => input.checked)?.value || "curse";
+    }
+
+    function isFireMasteryActive(spell) {
+      return inputs.characterClass.value === "wizard" && spell.fireMastery && inputs.fireMastery.checked;
+    }
+
+    function calculateDamage(spell, locationBonus, options = {}) {
+      const scaling = spell.scaling;
+      const baseDamage = spell.baseDamage;
+      const magicalWeaponDamage = numberValue(inputs.weaponDamage);
+      const magicPowerBonus = percentValue(inputs.magicPower) + (options.fireMastery ? 0.05 : 0);
+      const additionalMagicalDamage = numberValue(inputs.additionalDamage);
+      const magicDamageReduction = getCowAdjustedMdr();
+      const projectileReduction = spell.isProjectile ? percentValue(inputs.projectileReduction) : 0;
+      const magicPenetration = percentValue(inputs.penetration);
+      const hitBonus = spell.isProjectile ? locationBonus : 0;
+
+      const scaledBase = baseDamage + (magicalWeaponDamage * scaling);
+      const poweredDamage = scaledBase * (1 + (magicPowerBonus * scaling));
+      const addedDamage = additionalMagicalDamage * scaling;
+      const effectiveMdr = magicDamageReduction * (1 - magicPenetration);
+
+      return (poweredDamage + addedDamage)
+        * (1 + hitBonus)
+        * (1 - effectiveMdr)
+        * (1 - projectileReduction);
+    }
+
+    function getEffectiveDotDuration(baseDuration, usesFireMastery) {
+      const extraDuration = usesFireMastery ? 2 : 0;
+      return baseDuration + extraDuration;
+    }
+
+    function getInitialHitLabel(spell) {
+      return inputs.characterClass.value === "wizard" ? "Initial Hit" : `${spell.name} Initial Hit`;
+    }
+
+    function getBurnTotalLabel(spell) {
+      return inputs.characterClass.value === "wizard" ? "Burn Damage" : `${spell.name} Damage Over Time`;
+    }
+
+    function getBurnTickLabel(spell) {
+      return inputs.characterClass.value === "wizard" ? "Burn Tick Damage" : `${spell.name} Tick Damage`;
+    }
+
+    function renderResults() {
+      const spell = getCurrentSpell();
+      const debuffDurationReduction = Math.max(0, percentValue(inputs.debuffDuration));
+      updateVisibleInputs(spell);
+      resultTitle.textContent = spell.type === "healingOverTime" ? "Total Healing" : "Total Damage Dealt";
+      let results;
+      const fireMasteryActive = isFireMasteryActive(spell);
+
+      if (spell.type === "fireball") {
+        const dotDuration = getEffectiveDotDuration(spell.dot.durationSeconds, fireMasteryActive);
+        const tickDamage = calculateDamage(spell.dot, 0, { fireMastery: fireMasteryActive });
+        const effectiveTicks = Math.max(0, dotDuration * (1 - debuffDurationReduction));
+
+        results = [
+          ...hitLocations.map((location) => ({
+            name: `${spell.direct.name}: ${location.name}`,
+            bonus: location.bonus,
+            damage: calculateDamage(spell.direct, location.bonus, { fireMastery: fireMasteryActive }),
+            isProjectileResult: true,
+            kind: location.name === "Body" ? "directBody" : "directLocation"
+          })),
+          {
+            name: spell.splash.name,
+            bonus: 0,
+            damage: calculateDamage(spell.splash, 0, { fireMastery: fireMasteryActive }),
+            kind: "splash"
+          },
+          {
+            name: spell.dot.name,
+            bonus: 0,
+            damage: tickDamage * effectiveTicks,
+            kind: "burnTotal"
+          },
+          {
+            name: "Direct Hit + Burn Damage",
+            bonus: 0,
+            damage: calculateDamage(spell.direct, 0, { fireMastery: fireMasteryActive }) + (tickDamage * effectiveTicks),
+            kind: "directTotal"
+          },
+          {
+            name: "Splash Damage + Burn Damage",
+            bonus: 0,
+            damage: calculateDamage(spell.splash, 0, { fireMastery: fireMasteryActive }) + (tickDamage * effectiveTicks),
+            kind: "splashTotal"
+          },
+          {
+            name: "Burn Tick Damage",
+            bonus: 0,
+            damage: tickDamage,
+            tickOnly: true,
+            effectiveTicks,
+            kind: "burnTick"
+          }
+        ];
+      } else if (spell.isProjectile) {
+        results = hitLocations.map((location) => ({
+          ...location,
+          damage: calculateDamage(spell, location.bonus, { fireMastery: fireMasteryActive }),
+          isProjectileResult: true
+        }));
+      } else if (spell.dot) {
+        const isWarlockDot = inputs.characterClass.value === "warlock";
+        const durationMultiplier = isWarlockDot && inputs.curseMastery.checked ? 1.3 : 1;
+        const totalDuration = getEffectiveDotDuration(spell.dot.durationSeconds * durationMultiplier, fireMasteryActive);
+        const dotDamage = calculateDamage(spell.dot, 0, { fireMastery: fireMasteryActive });
+        const tickDamage = spell.dot.perSecond ? dotDamage : dotDamage / (spell.dot.durationSeconds * durationMultiplier);
+        const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
+
+        results = [
+          {
+            name: getInitialHitLabel(spell),
+            bonus: 0,
+            damage: calculateDamage(spell, 0, { fireMastery: fireMasteryActive })
+          },
+          {
+            name: getBurnTotalLabel(spell),
+            bonus: 0,
+            damage: tickDamage * effectiveTicks
+          },
+          {
+            name: getBurnTickLabel(spell),
+            bonus: 0,
+            damage: tickDamage,
+            tickOnly: true,
+            effectiveTicks
+          }
+        ];
+      } else if (spell.type === "healingOverTime") {
+        const source = getSelectedTortureMasterySource();
+        const baseDuration = source === "sacrifice" ? 12 : 8;
+        const durationMultiplier = inputs.curseMastery.checked ? 1.3 : 1;
+        const totalDuration = baseDuration * durationMultiplier;
+        const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
+        const magicPowerBonus = percentValue(inputs.magicPower);
+        const magicalHealing = numberValue(inputs.magicalHealing);
+        const vampirismMultiplier = inputs.vampirism.checked ? 1.2 : 1;
+        const healingPerTick = (2 + (magicalHealing * 0.15)) * (1 + (magicPowerBonus * 0.15)) * vampirismMultiplier;
+        const totalHealing = healingPerTick * effectiveTicks;
+
+        results = [
+          {
+            name: `${spell.name} Total Healing`,
+            bonus: 0,
+            damage: totalHealing
+          },
+          {
+            name: `${spell.name} Healing Per Tick`,
+            bonus: 0,
+            damage: healingPerTick,
+            tickOnly: true,
+            effectiveTicks
+          }
+        ];
+      } else if (spell.type === "damageOverTime") {
+        const durationMultiplier = inputs.curseMastery.checked ? 1.3 : 1;
+        const totalDuration = spell.durationSeconds * durationMultiplier;
+        const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
+        const tickDamage = spell.damagePerSecond * getEffectiveMdrMultiplier();
+        const totalDamage = tickDamage * effectiveTicks;
+
+        results = [
+          {
+            name: `${spell.name} Damage Over Time`,
+            bonus: 0,
+            damage: totalDamage
+          },
+          {
+            name: `${spell.name} Tick Damage`,
+            bonus: 0,
+            damage: tickDamage,
+            tickOnly: true,
+            effectiveTicks
+          }
+        ];
+      } else if (spell.type === "formulaNeeded") {
+        results = [
+          {
+            name: spell.name,
+            bonus: 0,
+            damage: 0,
+            note: "Formula needed"
+          }
+        ];
+      } else {
+        results = [
+          {
+            name: spell.name,
+            bonus: 0,
+            damage: calculateDamage(spell, 0)
+          }
+        ];
+      }
+
+      damageList.innerHTML = results.map((result, index) => {
+        const bonusText = result.bonus === 0
+          ? "+0%"
+          : `${result.bonus > 0 ? "+" : ""}${Math.round(result.bonus * 100)}%`;
+        const hitLocationText = result.isProjectileResult
+          ? `<span>Hit location bonus: ${bonusText}</span>`
+          : "";
+        const tickText = result.tickOnly
+          ? `<span>Active ticks after debuff duration: ${floorToOneDecimal(result.effectiveTicks)}</span>`
+          : "";
+        const noteText = result.note
+          ? `<span>${result.note}</span>`
+          : "";
+        const damageText = result.tickOnly
+          ? floorToTwoDecimals(result.damage)
+          : floorToOneDecimal(result.damage);
+
+        return `
+          <div class="damage-row ${index === 0 ? "primary" : ""}">
+            <div class="part">
+              <strong>${result.name}</strong>
+              ${hitLocationText}
+              ${tickText}
+              ${noteText}
+            </div>
+            <div class="damage">${damageText}</div>
+          </div>
+        `;
+      }).join("");
+
+      if (spell.type === "fireball") {
+        const directTotal = results.find((result) => result.kind === "directTotal")?.damage || 0;
+        selectedLabel.textContent = "Direct Hit + Burn Damage";
+        mainTotal.textContent = floorToOneDecimal(directTotal);
+        return;
+      }
+
+      if (spell.dot || spell.type === "damageOverTime" || spell.type === "healingOverTime") {
+        const combinedDamage = results.reduce((total, result) => {
+          if (result.tickOnly) {
+            return total;
+          }
+
+          return total + result.damage;
+        }, 0);
+        if (spell.type === "healingOverTime") {
+          selectedLabel.textContent = "Total Healing";
+        } else {
+          selectedLabel.textContent = spell.dot && inputs.characterClass.value === "wizard"
+            ? "Initial Hit + Burn Damage"
+            : spell.dot ? "Initial Hit + Damage Over Time" : "Total Damage Over Time";
+        }
+
+        mainTotal.textContent = floorToOneDecimal(combinedDamage);
+        return;
+      }
+
+      const selectedResult = results.find((result) => result.name === "Body") || results[0];
+      selectedLabel.textContent = spell.isProjectile ? "Selected Result: Body" : "Selected Result";
+      mainTotal.textContent = floorToOneDecimal(selectedResult.damage);
+    }
+
+    Object.values(inputs).forEach((input) => {
+      if (input instanceof NodeList) {
+        input.forEach((item) => {
+          item.addEventListener("input", renderResults);
+          item.addEventListener("change", renderResults);
+        });
+        return;
+      }
+
+      input.addEventListener("input", renderResults);
+      input.addEventListener("change", renderResults);
+    });
+
+    inputs.characterClass.addEventListener("change", () => {
+      updateSpellOptions();
+      renderResults();
+    });
+
+    applyDefaultValues();
+    updateSpellOptions();
+    renderResults();
+  </script>
+</body>
+</html>
