@@ -1007,6 +1007,14 @@
       return baseDuration + extraDuration;
     }
 
+    function getWizardBurnTickDamage(dotSpell, fireMasteryActive) {
+      const baseDuration = dotSpell.durationSeconds;
+      const totalDuration = getEffectiveDotDuration(baseDuration, fireMasteryActive);
+      const totalBurnDamage = calculateDamage(dotSpell, 0, { fireMastery: fireMasteryActive }) * baseDuration;
+
+      return totalBurnDamage / totalDuration;
+    }
+
     function getInitialHitLabel(spell) {
       return inputs.characterClass.value === "wizard" ? "Initial Hit" : `${spell.name} Initial Hit`;
     }
@@ -1029,7 +1037,7 @@
 
       if (spell.type === "fireball") {
         const dotDuration = getEffectiveDotDuration(spell.dot.durationSeconds, fireMasteryActive);
-        const tickDamage = calculateDamage(spell.dot, 0, { fireMastery: fireMasteryActive });
+        const tickDamage = getWizardBurnTickDamage(spell.dot, fireMasteryActive);
         const effectiveTicks = Math.max(0, dotDuration * (1 - debuffDurationReduction));
 
         results = [
@@ -1084,7 +1092,9 @@
         const durationMultiplier = isWarlockDot && inputs.curseMastery.checked ? 1.3 : 1;
         const totalDuration = getEffectiveDotDuration(spell.dot.durationSeconds * durationMultiplier, fireMasteryActive);
         const dotDamage = calculateDamage(spell.dot, 0, { fireMastery: fireMasteryActive });
-        const tickDamage = spell.dot.perSecond ? dotDamage : dotDamage / (spell.dot.durationSeconds * durationMultiplier);
+        const tickDamage = inputs.characterClass.value === "wizard" && spell.dot.perSecond
+          ? getWizardBurnTickDamage(spell.dot, fireMasteryActive)
+          : spell.dot.perSecond ? dotDamage : dotDamage / (spell.dot.durationSeconds * durationMultiplier);
         const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
 
         results = [
