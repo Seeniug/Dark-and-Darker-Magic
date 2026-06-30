@@ -319,6 +319,107 @@
       line-height: 1;
     }
 
+    .hp-button,
+    .back-button {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 16px;
+      color: #fff8ef;
+      background: linear-gradient(90deg, rgba(224, 138, 50, 0.82), rgba(143, 92, 255, 0.72));
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.26);
+    }
+
+    .hp-button:hover,
+    .back-button:hover {
+      filter: brightness(1.08);
+    }
+
+    .view.hidden {
+      display: none;
+    }
+
+    .hp-view {
+      min-height: 68vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    .hp-controls {
+      width: min(420px, 100%);
+      display: grid;
+      gap: 14px;
+    }
+
+    .hp-actions {
+      width: min(420px, 100%);
+      display: grid;
+      gap: 12px;
+    }
+
+    .hp-readout {
+      color: var(--muted);
+      text-align: center;
+      font-size: 1rem;
+    }
+
+    .hp-bar-shell {
+      width: min(60vw, 760px);
+      min-width: min(92vw, 320px);
+      height: clamp(58px, 10vw, 96px);
+      padding: 8px;
+      border-radius: 18px;
+      background:
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0 2px, rgba(0, 0, 0, 0.18) 2px 5px),
+        #5d5d62;
+      border: 2px solid #8b8589;
+      box-shadow:
+        inset 0 0 18px rgba(0, 0, 0, 0.55),
+        0 24px 60px rgba(0, 0, 0, 0.42);
+    }
+
+    .hp-bar-track {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #27242a;
+      box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.6);
+    }
+
+    .hp-bar-fill {
+      width: 100%;
+      height: 100%;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 36%),
+        linear-gradient(90deg, #9b1116, #e12526 55%, #7d0f14);
+      transition: width 650ms cubic-bezier(0.2, 0.85, 0.2, 1);
+    }
+
+    .hp-bar-ghost {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      width: 0;
+      height: 100%;
+      opacity: 0.3;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 36%),
+        linear-gradient(90deg, #9b1116, #e12526 55%, #7d0f14);
+      transition:
+        left 650ms cubic-bezier(0.2, 0.85, 0.2, 1),
+        width 650ms cubic-bezier(0.2, 0.85, 0.2, 1);
+    }
+
     .formula {
       margin-top: 14px;
       color: var(--muted);
@@ -366,7 +467,7 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <main class="app view" id="calculatorView">
     <header>
       <div class="title-row">
         <h1>Bench Magical Calculator</h1>
@@ -481,7 +582,32 @@
         <div class="footer-total">
           <span id="selectedLabel">Selected Result</span>
           <strong id="mainTotal">0.0</strong>
+          <button class="hp-button" id="openHpView" type="button">HP bar display</button>
         </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="app view hidden" id="hpView">
+    <section class="hp-view" aria-label="HP bar damage display">
+      <div class="hp-controls">
+        <div class="field full">
+          <label for="targetHp">Target HP</label>
+          <input id="targetHp" type="number" value="100" min="1" step="1">
+        </div>
+        <div class="hp-readout" id="hpReadout">Damage: 0.0 / HP remaining: 100.0</div>
+      </div>
+
+      <div class="hp-bar-shell" aria-label="Target HP bar">
+        <div class="hp-bar-track">
+          <div class="hp-bar-fill" id="hpBarFill"></div>
+          <div class="hp-bar-ghost" id="hpBarGhost"></div>
+        </div>
+      </div>
+
+      <div class="hp-actions">
+        <button class="back-button" id="showDamageDealt" type="button">Show damage dealt</button>
+        <button class="back-button" id="backToCalculator" type="button">Back to calculator</button>
       </div>
     </section>
   </main>
@@ -704,10 +830,20 @@
     const mainTotal = document.getElementById("mainTotal");
     const selectedLabel = document.getElementById("selectedLabel");
     const resultTitle = document.getElementById("resultTitle");
+    const calculatorView = document.getElementById("calculatorView");
+    const hpView = document.getElementById("hpView");
+    const openHpView = document.getElementById("openHpView");
+    const showDamageDealt = document.getElementById("showDamageDealt");
+    const backToCalculator = document.getElementById("backToCalculator");
+    const targetHp = document.getElementById("targetHp");
+    const hpReadout = document.getElementById("hpReadout");
+    const hpBarFill = document.getElementById("hpBarFill");
+    const hpBarGhost = document.getElementById("hpBarGhost");
     const warlockOptions = document.getElementById("warlockOptions");
     const wizardOptions = document.getElementById("wizardOptions");
     const inputFields = document.querySelectorAll("[data-input]");
     const warlockOptionFields = document.querySelectorAll("[data-option]");
+    let hpDamageApplied = false;
 
     function numberValue(input) {
       const value = Number(input.value);
@@ -724,6 +860,42 @@
 
     function floorToTwoDecimals(value) {
       return (Math.floor(value * 100) / 100).toFixed(2);
+    }
+
+    function getDisplayedTotal() {
+      const value = Number(mainTotal.textContent);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function updateHpBar() {
+      const hp = Math.max(1, numberValue(targetHp));
+      const damage = hpDamageApplied ? Math.max(0, getDisplayedTotal()) : 0;
+      const remainingHp = Math.max(0, hp - damage);
+      const remainingPercent = Math.max(0, Math.min(100, (remainingHp / hp) * 100));
+      const damagePercent = Math.max(0, Math.min(100, (Math.min(damage, hp) / hp) * 100));
+      const ghostPercent = hpDamageApplied ? Math.min(100 - remainingPercent, damagePercent * 0.65) : 0;
+
+      hpBarFill.style.width = `${remainingPercent}%`;
+      hpBarGhost.style.left = `${remainingPercent}%`;
+      hpBarGhost.style.width = `${ghostPercent}%`;
+      hpReadout.textContent = `Damage: ${floorToOneDecimal(damage)} / HP remaining: ${floorToOneDecimal(remainingHp)}`;
+    }
+
+    function showHpView() {
+      calculatorView.classList.add("hidden");
+      hpView.classList.remove("hidden");
+      hpDamageApplied = false;
+      updateHpBar();
+    }
+
+    function showCalculatorView() {
+      hpView.classList.add("hidden");
+      calculatorView.classList.remove("hidden");
+    }
+
+    function applyHpDamage() {
+      hpDamageApplied = true;
+      updateHpBar();
     }
 
     function applyDefaultValues() {
@@ -1029,6 +1201,7 @@
         const directTotal = results.find((result) => result.kind === "directTotal")?.damage || 0;
         selectedLabel.textContent = "Direct Hit + Burn Damage";
         mainTotal.textContent = floorToOneDecimal(directTotal);
+        updateHpBar();
         return;
       }
 
@@ -1049,12 +1222,14 @@
         }
 
         mainTotal.textContent = floorToOneDecimal(combinedDamage);
+        updateHpBar();
         return;
       }
 
       const selectedResult = results.find((result) => result.name === "Body") || results[0];
       selectedLabel.textContent = spell.isProjectile ? "Selected Result: Body" : "Selected Result";
       mainTotal.textContent = floorToOneDecimal(selectedResult.damage);
+      updateHpBar();
     }
 
     Object.values(inputs).forEach((input) => {
@@ -1074,6 +1249,12 @@
       updateSpellOptions();
       renderResults();
     });
+
+    openHpView.addEventListener("click", showHpView);
+    showDamageDealt.addEventListener("click", applyHpDamage);
+    backToCalculator.addEventListener("click", showCalculatorView);
+    targetHp.addEventListener("input", updateHpBar);
+    targetHp.addEventListener("change", updateHpBar);
 
     applyDefaultValues();
     updateSpellOptions();
