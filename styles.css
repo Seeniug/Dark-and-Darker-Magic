@@ -1,4 +1,3 @@
-
 :root {
       --bg: #111014;
       --panel: #1b1821;
@@ -63,12 +62,47 @@
     }
 
     .class-select {
-      width: auto;
-      min-width: 220px;
+      width: 100%;
       color: #fff8ef;
       border-color: rgba(224, 138, 50, 0.7);
       background: rgba(18, 16, 23, 0.92);
       font-weight: 700;
+    }
+
+    .class-select-wrap {
+      width: min(280px, 100%);
+    }
+
+    .icon-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .icon-select select {
+      padding-left: 48px;
+    }
+
+    .select-icon {
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      flex: 0 0 auto;
+    }
+
+    .select-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      z-index: 1;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .select-icon.hidden {
+      display: none;
     }
 
     .calculator {
@@ -128,6 +162,7 @@
 
     .field.hidden,
     .checkbox-field.hidden,
+    .option-number-field.hidden,
     .toggle-group.hidden {
       display: none;
     }
@@ -162,6 +197,27 @@
       min-height: 18px;
       height: 18px;
       accent-color: var(--purple);
+    }
+
+    .option-number-field {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      min-height: 44px;
+    }
+
+    .option-number-field label {
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .option-number-field input {
+      width: 84px;
+      min-height: 36px;
+      margin-left: auto;
+      padding: 7px 10px;
+      text-align: center;
     }
 
     .toggle-group {
@@ -256,6 +312,13 @@
       background: var(--panel-soft);
       border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .damage-row:hover {
+      border-color: rgba(224, 138, 50, 0.38);
+      transform: translateY(-1px);
     }
 
     .damage-row.primary {
@@ -357,6 +420,19 @@
       width: min(420px, 100%);
       display: grid;
       gap: 12px;
+    }
+
+    .hp-actions .checkbox-field {
+      justify-content: center;
+      min-height: 28px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .hp-actions .checkbox-field input {
+      width: 16px;
+      min-height: 16px;
+      height: 16px;
     }
 
     .hp-readout {

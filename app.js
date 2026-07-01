@@ -12,7 +12,10 @@ const inputs = {
       curseMastery: document.getElementById("curseMastery"),
       vampirism: document.getElementById("vampirism"),
       cow: document.getElementById("cow"),
+      darkEnhancement: document.getElementById("darkEnhancement"),
+      soulCollector: document.getElementById("soulCollector"),
       fireMastery: document.getElementById("fireMastery"),
+      arcaneMastery: document.getElementById("arcaneMastery"),
       faithfulness: document.getElementById("faithfulness"),
       tortureMasterySource: document.querySelectorAll("input[name='tortureMasterySource']")
     };
@@ -21,12 +24,15 @@ const inputs = {
     const mainTotal = document.getElementById("mainTotal");
     const selectedLabel = document.getElementById("selectedLabel");
     const resultTitle = document.getElementById("resultTitle");
+    const classIcon = document.getElementById("classIcon");
+    const spellIcon = document.getElementById("spellIcon");
     const calculatorView = document.getElementById("calculatorView");
     const hpView = document.getElementById("hpView");
     const openHpView = document.getElementById("openHpView");
     const showDamageDealt = document.getElementById("showDamageDealt");
     const backToCalculator = document.getElementById("backToCalculator");
     const targetHp = document.getElementById("targetHp");
+    const skipAnimation = document.getElementById("skipAnimation");
     const hpReadout = document.getElementById("hpReadout");
     const hpBarFill = document.getElementById("hpBarFill");
     const hpBarGhost = document.getElementById("hpBarGhost");
@@ -36,6 +42,18 @@ const inputs = {
     const inputFields = document.querySelectorAll("[data-input]");
     const warlockOptionFields = document.querySelectorAll("[data-option]");
     let hpDamageApplied = false;
+    let hpSimulatedDamage = 0;
+    let hpAnimationTimers = [];
+    let selectedResultKey = "";
+    let currentResults = [];
+
+    const iconPaths = {
+      classes: {
+        warlock: "assets/icons/classes/warlock.png",
+        wizard: "assets/icons/classes/wizard.png",
+        cleric: "assets/icons/classes/cleric.png"
+      }
+    };
 
     function numberValue(input) {
       const value = Number(input.value);
@@ -59,39 +77,106 @@ const inputs = {
       return Number.isFinite(value) ? value : 0;
     }
 
+    function getSelectedResult() {
+      return currentResults.find((result) => result.key === selectedResultKey);
+    }
+
+    function isSelectedResultHealing() {
+      return getSelectedResult()?.effect === "healing";
+    }
+
+    function clearHpAnimation() {
+      hpAnimationTimers.forEach((timer) => clearTimeout(timer));
+      hpAnimationTimers = [];
+    }
+
     function updateHpBar() {
       const hp = Math.max(1, numberValue(targetHp));
-      const damage = hpDamageApplied ? Math.max(0, getDisplayedTotal()) : 0;
-      const remainingHp = Math.max(0, hp - damage);
+      const amount = hpDamageApplied ? Math.max(0, hpSimulatedDamage) : 0;
+      const isHealing = isSelectedResultHealing();
+
+      if (isHealing) {
+        const startingHp = hp * 0.3;
+        const currentHp = Math.min(hp, startingHp + amount);
+        const currentPercent = Math.max(0, Math.min(100, (currentHp / hp) * 100));
+
+        hpBarFill.style.width = `${currentPercent}%`;
+        hpBarGhost.style.left = `${currentPercent}%`;
+        hpBarGhost.style.width = "0%";
+        hpReadout.textContent = `Healing: ${floorToOneDecimal(amount)} / HP current: ${floorToOneDecimal(currentHp)}`;
+        return;
+      }
+
+      const remainingHp = Math.max(0, hp - amount);
       const remainingPercent = Math.max(0, Math.min(100, (remainingHp / hp) * 100));
-      const damagePercent = Math.max(0, Math.min(100, (Math.min(damage, hp) / hp) * 100));
+      const damagePercent = Math.max(0, Math.min(100, (Math.min(amount, hp) / hp) * 100));
       const ghostPercent = hpDamageApplied ? Math.min(100 - remainingPercent, damagePercent * 0.65) : 0;
 
       hpBarFill.style.width = `${remainingPercent}%`;
       hpBarGhost.style.left = `${remainingPercent}%`;
       hpBarGhost.style.width = `${ghostPercent}%`;
-      hpReadout.textContent = `Damage: ${floorToOneDecimal(damage)} / HP remaining: ${floorToOneDecimal(remainingHp)}`;
+      hpReadout.textContent = `Damage: ${floorToOneDecimal(amount)} / HP remaining: ${floorToOneDecimal(remainingHp)}`;
     }
 
     function showHpView() {
       calculatorView.classList.add("hidden");
       hpView.classList.remove("hidden");
+      clearHpAnimation();
       hpDamageApplied = false;
+      hpSimulatedDamage = 0;
       updateHpBar();
     }
 
     function showCalculatorView() {
+      clearHpAnimation();
       hpView.classList.add("hidden");
       calculatorView.classList.remove("hidden");
     }
 
     function applyHpDamage() {
+      const selectedResult = getSelectedResult();
+      const events = selectedResult?.events?.length
+        ? selectedResult.events
+        : [{ damage: getDisplayedTotal(), delayMs: 0 }];
+
+      clearHpAnimation();
       hpDamageApplied = true;
+      hpSimulatedDamage = 0;
       updateHpBar();
+
+      if (skipAnimation.checked) {
+        hpSimulatedDamage = Math.max(0, getDisplayedTotal());
+        updateHpBar();
+        return;
+      }
+
+      let elapsedMs = 0;
+      events.forEach((event) => {
+        elapsedMs += event.delayMs || 0;
+
+        const timer = setTimeout(() => {
+          hpSimulatedDamage += event.damage;
+          updateHpBar();
+        }, elapsedMs);
+
+        hpAnimationTimers.push(timer);
+      });
     }
 
     function resetHpSimulation() {
+      clearHpAnimation();
       hpDamageApplied = false;
+      hpSimulatedDamage = 0;
+      updateHpBar();
+    }
+
+    function skipActiveHpAnimation() {
+      if (!skipAnimation.checked || !hpDamageApplied) {
+        return;
+      }
+
+      clearHpAnimation();
+      hpSimulatedDamage = Math.max(0, getDisplayedTotal());
       updateHpBar();
     }
 
@@ -99,7 +184,7 @@ const inputs = {
       inputs.weaponDamage.value = 6;
       inputs.magicPower.value = 20;
       inputs.additionalDamage.value = 5;
-      inputs.magicalHealing.value = 0;
+      inputs.magicalHealing.value = 10;
       inputs.mdr.value = 0;
       inputs.projectileReduction.value = 0;
       inputs.penetration.value = 5;
@@ -107,7 +192,10 @@ const inputs = {
       inputs.curseMastery.checked = false;
       inputs.vampirism.checked = false;
       inputs.cow.checked = false;
+      inputs.darkEnhancement.checked = false;
+      inputs.soulCollector.value = 0;
       inputs.fireMastery.checked = false;
+      inputs.arcaneMastery.checked = false;
       inputs.faithfulness.checked = false;
       inputs.tortureMasterySource.forEach((input) => {
         input.checked = input.value === "curse";
@@ -119,6 +207,27 @@ const inputs = {
       return spells.find((spell) => spell.id === inputs.spell.value) || spells[0];
     }
 
+    function setIcon(image, src) {
+      if (!image || !src) {
+        return;
+      }
+
+      image.classList.add("hidden");
+      image.onload = () => image.classList.remove("hidden");
+      image.onerror = () => image.classList.add("hidden");
+      image.src = src;
+    }
+
+    function getSpellIconPath(spell) {
+      const iconName = spell.id.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+      return spell.icon || `assets/icons/spells/${iconName}.png`;
+    }
+
+    function updateSelectIcons() {
+      setIcon(classIcon, iconPaths.classes[inputs.characterClass.value]);
+      setIcon(spellIcon, getSpellIconPath(getCurrentSpell()));
+    }
+
     function updateSpellOptions() {
       const spells = classSpells[inputs.characterClass.value];
       inputs.spell.innerHTML = spells.map((spell) => (
@@ -127,6 +236,7 @@ const inputs = {
       warlockOptions.classList.toggle("visible", inputs.characterClass.value === "warlock");
       wizardOptions.classList.toggle("visible", inputs.characterClass.value === "wizard");
       clericOptions.classList.toggle("visible", inputs.characterClass.value === "cleric");
+      updateSelectIcons();
     }
 
     function updateVisibleInputs(spell) {
@@ -176,8 +286,24 @@ const inputs = {
       return inputs.characterClass.value === "wizard" && spell.fireMastery && inputs.fireMastery.checked;
     }
 
+    function isArcaneMasteryActive(spell) {
+      return inputs.characterClass.value === "wizard" && spell.arcaneMastery && inputs.arcaneMastery.checked;
+    }
+
     function isFaithfulnessActive(spell) {
       return inputs.characterClass.value === "cleric" && spell.faithfulness && inputs.faithfulness.checked;
+    }
+
+    function isDarkEnhancementActive(spell) {
+      return inputs.characterClass.value === "warlock" && spell.darkEnhancement && inputs.darkEnhancement.checked;
+    }
+
+    function getSoulCollectorStacks(spell) {
+      if (inputs.characterClass.value !== "warlock" || !spell.soulCollector) {
+        return 0;
+      }
+
+      return Math.min(3, Math.max(0, Math.floor(numberValue(inputs.soulCollector))));
     }
 
     function calculateDamage(spell, locationBonus, options = {}) {
@@ -186,12 +312,15 @@ const inputs = {
       const magicalWeaponDamage = numberValue(inputs.weaponDamage);
       const magicPowerBonus = percentValue(inputs.magicPower)
         + (options.fireMastery ? 0.05 : 0)
-        + (options.faithfulness ? 0.15 : 0);
+        + (options.arcaneMastery ? 0.05 : 0)
+        + (options.faithfulness ? 0.15 : 0)
+        + (options.darkEnhancement ? 0.2 : 0)
+        + ((options.soulCollectorStacks || 0) * 0.33);
       const additionalMagicalDamage = numberValue(inputs.additionalDamage);
       const magicDamageReduction = getCowAdjustedMdr();
       const projectileReduction = spell.isProjectile ? percentValue(inputs.projectileReduction) : 0;
       const magicPenetration = percentValue(inputs.penetration);
-      const hitBonus = spell.isProjectile ? locationBonus : 0;
+      const hitBonus = spell.isProjectile || options.useHitLocation ? locationBonus : 0;
 
       const scaledBase = baseDamage + (magicalWeaponDamage * scaling);
       const poweredDamage = scaledBase * (1 + (magicPowerBonus * scaling));
@@ -240,9 +369,103 @@ const inputs = {
       return inputs.characterClass.value === "wizard" ? "Burn Tick Damage" : `${spell.name} Tick Damage`;
     }
 
+    function buildSingleEvent(damage) {
+      return [{ damage, delayMs: 0 }];
+    }
+
+    function buildTickEvents(tickDamage, effectiveTicks, intervalMs, firstDelayMs = 0) {
+      const events = [];
+      const fullTicks = Math.floor(effectiveTicks);
+      const partialTick = effectiveTicks - fullTicks;
+
+      for (let index = 0; index < fullTicks; index += 1) {
+        events.push({
+          damage: tickDamage,
+          delayMs: index === 0 ? firstDelayMs : intervalMs
+        });
+      }
+
+      if (partialTick > 0) {
+        events.push({
+          damage: tickDamage * partialTick,
+          delayMs: events.length === 0 ? firstDelayMs : intervalMs
+        });
+      }
+
+      return events;
+    }
+
+    function buildInitialAndTickEvents(initialDamage, tickDamage, effectiveTicks, intervalMs) {
+      return [
+        { damage: initialDamage, delayMs: 0 },
+        ...buildTickEvents(tickDamage, effectiveTicks, intervalMs, intervalMs)
+      ];
+    }
+
+    function getDefaultResultKey(spell, results) {
+      if (spell.type === "fireball") {
+        return results.find((result) => result.kind === "directTotal")?.key;
+      }
+
+      if (spell.type === "magicMissile") {
+        return results.find((result) => result.kind === "totalMissile")?.key;
+      }
+
+      if (spell.type === "chainLightning") {
+        return results.find((result) => result.kind === "totalChain")?.key;
+      }
+
+      if (spell.type === "ignite") {
+        return results.find((result) => result.kind === "igniteBodyTotal")?.key;
+      }
+
+      if (spell.dot) {
+        return results.find((result) => result.kind === "combinedDot")?.key;
+      }
+
+      if (spell.isProjectile) {
+        return results.find((result) => result.name === "Body")?.key;
+      }
+
+      return results[0]?.key;
+    }
+
+    function selectResult(resultKey) {
+      selectedResultKey = resultKey;
+      const selectedResult = currentResults.find((result) => result.key === selectedResultKey);
+
+      if (!selectedResult) {
+        return;
+      }
+
+      selectedLabel.textContent = selectedResult.name;
+      mainTotal.textContent = selectedResult.tickOnly
+        ? floorToTwoDecimals(selectedResult.damage)
+        : floorToOneDecimal(selectedResult.damage);
+
+      damageList.querySelectorAll(".damage-row").forEach((row) => {
+        row.classList.toggle("primary", row.dataset.resultKey === selectedResultKey);
+      });
+
+      updateHpBar();
+    }
+
+    function prepareSelectableResults(spell, results) {
+      currentResults = results.map((result, index) => ({
+        ...result,
+        key: `${spell.id}-${result.kind || index}-${result.name}`
+      }));
+
+      if (!currentResults.some((result) => result.key === selectedResultKey)) {
+        selectedResultKey = getDefaultResultKey(spell, currentResults) || currentResults[0]?.key || "";
+      }
+
+      return currentResults;
+    }
+
     function renderResults() {
       const spell = getCurrentSpell();
-      const debuffDurationReduction = Math.max(0, percentValue(inputs.debuffDuration));
+      const debuffDurationReduction = percentValue(inputs.debuffDuration);
       updateVisibleInputs(spell);
       const isHealingSpell = spell.type === "healingOverTime"
         || spell.type === "instantHealing"
@@ -250,9 +473,103 @@ const inputs = {
       resultTitle.textContent = isHealingSpell ? "Total Healing" : "Total Damage Dealt";
       let results;
       const fireMasteryActive = isFireMasteryActive(spell);
+      const arcaneMasteryActive = isArcaneMasteryActive(spell);
       const faithfulnessActive = isFaithfulnessActive(spell);
+      const darkEnhancementActive = isDarkEnhancementActive(spell);
+      const soulCollectorStacks = getSoulCollectorStacks(spell);
 
-      if (spell.type === "fireball") {
+      if (spell.type === "magicMissile") {
+        const perMissileDamage = calculateDamage(spell, 0, { arcaneMastery: arcaneMasteryActive });
+        const totalMissileDamage = perMissileDamage * spell.missileCount;
+
+        results = [
+          {
+            name: "Per Missile Damage",
+            bonus: 0,
+            damage: perMissileDamage,
+            events: buildSingleEvent(perMissileDamage)
+          },
+          {
+            name: "Total Missile Damage",
+            bonus: 0,
+            damage: totalMissileDamage,
+            kind: "totalMissile",
+            events: buildTickEvents(perMissileDamage, spell.missileCount, 300, 0)
+          }
+        ];
+      } else if (spell.type === "chainLightning") {
+        const hitResults = spell.hits.map((hit) => ({
+          name: hit.name,
+          bonus: 0,
+          damage: calculateDamage({
+            baseDamage: hit.baseDamage,
+            scaling: spell.scaling,
+            isProjectile: false
+          }, 0)
+        }));
+        const totalDamage = hitResults.reduce((total, result) => total + result.damage, 0);
+
+        results = [
+          ...hitResults,
+          {
+            name: "Total Chain Damage",
+            bonus: 0,
+            damage: totalDamage,
+            kind: "totalChain",
+            events: hitResults.map((result, index) => ({
+              damage: result.damage,
+              delayMs: index === 0 ? 0 : 300
+            }))
+          }
+        ];
+      } else if (spell.type === "ignite") {
+        const igniteLocations = hitLocations.filter((location) => location.name === "Head" || location.name === "Body");
+        const dotDuration = getEffectiveDotDuration(spell.dot.durationSeconds, fireMasteryActive);
+        const effectiveTicks = Math.max(0, dotDuration * (1 - debuffDurationReduction));
+        const extraBaseDamage = fireMasteryActive ? (spell.dot.fireMasteryBaseBonus || 0) : 0;
+
+        results = igniteLocations.flatMap((location) => {
+          const initialDamage = calculateDamage(spell.initial, location.bonus, {
+            fireMastery: fireMasteryActive,
+            useHitLocation: true
+          });
+          const totalBurnDamage = calculateDamage(spell.dot, location.bonus, {
+            fireMastery: fireMasteryActive,
+            extraBaseDamage,
+            useHitLocation: true
+          }) * spell.dot.durationSeconds;
+          const tickDamage = totalBurnDamage / dotDuration;
+          const burnDamage = tickDamage * effectiveTicks;
+          const tickEvents = buildTickEvents(tickDamage, effectiveTicks, 1000, 0);
+          const initialEvents = buildSingleEvent(initialDamage);
+          const combinedEvents = buildInitialAndTickEvents(initialDamage, tickDamage, effectiveTicks, 1000);
+
+          return [
+            {
+              name: `Initial Hit: ${location.name}`,
+              bonus: location.bonus,
+              damage: initialDamage,
+              isProjectileResult: true,
+              events: initialEvents
+            },
+            {
+              name: `Burn Damage: ${location.name}`,
+              bonus: location.bonus,
+              damage: burnDamage,
+              isProjectileResult: true,
+              events: tickEvents
+            },
+            {
+              name: `Initial Hit + Burn Damage: ${location.name}`,
+              bonus: location.bonus,
+              damage: initialDamage + burnDamage,
+              isProjectileResult: true,
+              kind: location.name === "Body" ? "igniteBodyTotal" : "igniteLocationTotal",
+              events: combinedEvents
+            }
+          ];
+        });
+      } else if (spell.type === "fireball") {
         const dotDuration = getEffectiveDotDuration(spell.dot.durationSeconds, fireMasteryActive);
         const tickDamage = getWizardBurnTickDamage(spell.dot, fireMasteryActive);
         const effectiveTicks = Math.max(0, dotDuration * (1 - debuffDurationReduction));
@@ -263,31 +580,46 @@ const inputs = {
             bonus: location.bonus,
             damage: calculateDamage(spell.direct, location.bonus, { fireMastery: fireMasteryActive }),
             isProjectileResult: true,
-            kind: location.name === "Body" ? "directBody" : "directLocation"
+            kind: location.name === "Body" ? "directBody" : "directLocation",
+            events: buildSingleEvent(calculateDamage(spell.direct, location.bonus, { fireMastery: fireMasteryActive }))
           })),
           {
             name: spell.splash.name,
             bonus: 0,
             damage: calculateDamage(spell.splash, 0, { fireMastery: fireMasteryActive }),
-            kind: "splash"
+            kind: "splash",
+            events: buildSingleEvent(calculateDamage(spell.splash, 0, { fireMastery: fireMasteryActive }))
           },
           {
             name: spell.dot.name,
             bonus: 0,
             damage: tickDamage * effectiveTicks,
-            kind: "burnTotal"
+            kind: "burnTotal",
+            events: buildTickEvents(tickDamage, effectiveTicks, 1000, 0)
           },
           {
             name: "Direct Hit + Burn Damage",
             bonus: 0,
             damage: calculateDamage(spell.direct, 0, { fireMastery: fireMasteryActive }) + (tickDamage * effectiveTicks),
-            kind: "directTotal"
+            kind: "directTotal",
+            events: buildInitialAndTickEvents(
+              calculateDamage(spell.direct, 0, { fireMastery: fireMasteryActive }),
+              tickDamage,
+              effectiveTicks,
+              1000
+            )
           },
           {
             name: "Splash Damage + Burn Damage",
             bonus: 0,
             damage: calculateDamage(spell.splash, 0, { fireMastery: fireMasteryActive }) + (tickDamage * effectiveTicks),
-            kind: "splashTotal"
+            kind: "splashTotal",
+            events: buildInitialAndTickEvents(
+              calculateDamage(spell.splash, 0, { fireMastery: fireMasteryActive }),
+              tickDamage,
+              effectiveTicks,
+              1000
+            )
           },
           {
             name: "Burn Tick Damage",
@@ -295,7 +627,8 @@ const inputs = {
             damage: tickDamage,
             tickOnly: true,
             effectiveTicks,
-            kind: "burnTick"
+            kind: "burnTick",
+            events: buildSingleEvent(tickDamage)
           }
         ];
       } else if (spell.isProjectile) {
@@ -303,7 +636,9 @@ const inputs = {
           ...location,
           damage: calculateDamage(spell, location.bonus, {
             fireMastery: fireMasteryActive,
-            faithfulness: faithfulnessActive
+            faithfulness: faithfulnessActive,
+            darkEnhancement: darkEnhancementActive,
+            soulCollectorStacks
           }),
           isProjectileResult: true
         }));
@@ -321,19 +656,36 @@ const inputs = {
           {
             name: getInitialHitLabel(spell),
             bonus: 0,
-            damage: calculateDamage(spell, 0, { fireMastery: fireMasteryActive })
+            damage: calculateDamage(spell, 0, { fireMastery: fireMasteryActive }),
+            kind: "initialHit",
+            events: buildSingleEvent(calculateDamage(spell, 0, { fireMastery: fireMasteryActive }))
           },
           {
             name: getBurnTotalLabel(spell),
             bonus: 0,
-            damage: tickDamage * effectiveTicks
+            damage: tickDamage * effectiveTicks,
+            kind: "dotTotal",
+            events: buildTickEvents(tickDamage, effectiveTicks, 1000, 0)
+          },
+          {
+            name: inputs.characterClass.value === "wizard" ? "Initial Hit + Burn Damage" : "Initial Hit + Damage Over Time",
+            bonus: 0,
+            damage: calculateDamage(spell, 0, { fireMastery: fireMasteryActive }) + (tickDamage * effectiveTicks),
+            kind: "combinedDot",
+            events: buildInitialAndTickEvents(
+              calculateDamage(spell, 0, { fireMastery: fireMasteryActive }),
+              tickDamage,
+              effectiveTicks,
+              1000
+            )
           },
           {
             name: getBurnTickLabel(spell),
             bonus: 0,
             damage: tickDamage,
             tickOnly: true,
-            effectiveTicks
+            effectiveTicks,
+            events: buildSingleEvent(tickDamage)
           }
         ];
       } else if (spell.type === "healingOverTime") {
@@ -352,14 +704,18 @@ const inputs = {
           {
             name: `${spell.name} Total Healing`,
             bonus: 0,
-            damage: totalHealing
+            damage: totalHealing,
+            effect: "healing",
+            events: buildTickEvents(healingPerTick, effectiveTicks, 1000, 0)
           },
           {
             name: `${spell.name} Healing Per Tick`,
             bonus: 0,
             damage: healingPerTick,
+            effect: "healing",
             tickOnly: true,
-            effectiveTicks
+            effectiveTicks,
+            events: buildSingleEvent(healingPerTick)
           }
         ];
       } else if (spell.type === "instantHealing") {
@@ -369,7 +725,9 @@ const inputs = {
           {
             name: spell.name,
             bonus: 0,
-            damage: healing
+            damage: healing,
+            effect: "healing",
+            events: buildSingleEvent(healing)
           }
         ];
       } else if (spell.type === "clericHealingOverTime") {
@@ -381,14 +739,18 @@ const inputs = {
           {
             name: `${spell.name} Total Healing`,
             bonus: 0,
-            damage: totalHealing
+            damage: totalHealing,
+            effect: "healing",
+            events: buildTickEvents(healingPerTick, effectiveTicks, 1000, 0)
           },
           {
             name: `${spell.name} Healing Per Tick`,
             bonus: 0,
             damage: healingPerTick,
+            effect: "healing",
             tickOnly: true,
-            effectiveTicks
+            effectiveTicks,
+            events: buildSingleEvent(healingPerTick)
           }
         ];
       } else if (spell.type === "clericDamageOverTime") {
@@ -403,7 +765,8 @@ const inputs = {
           {
             name: `${spell.name} Total Damage`,
             bonus: 0,
-            damage: totalDamage
+            damage: totalDamage,
+            events: buildTickEvents(tickDamage, effectiveTicks, spell.tickInterval * 1000, 0)
           },
           {
             name: `${spell.name} Tick Damage`,
@@ -411,7 +774,8 @@ const inputs = {
             damage: tickDamage,
             tickOnly: true,
             effectiveTicks,
-            hideTickCount: spell.id === "locustSwarm"
+            hideTickCount: spell.id === "locustSwarm",
+            events: buildSingleEvent(tickDamage)
           }
         ];
       } else if (spell.type === "damageOverTime") {
@@ -425,14 +789,16 @@ const inputs = {
           {
             name: `${spell.name} Damage Over Time`,
             bonus: 0,
-            damage: totalDamage
+            damage: totalDamage,
+            events: buildTickEvents(tickDamage, effectiveTicks, 1000, 0)
           },
           {
             name: `${spell.name} Tick Damage`,
             bonus: 0,
             damage: tickDamage,
             tickOnly: true,
-            effectiveTicks
+            effectiveTicks,
+            events: buildSingleEvent(tickDamage)
           }
         ];
       } else if (spell.type === "formulaNeeded") {
@@ -441,7 +807,8 @@ const inputs = {
             name: spell.name,
             bonus: 0,
             damage: 0,
-            note: "Formula needed"
+            note: "Formula needed",
+            events: buildSingleEvent(0)
           }
         ];
       } else {
@@ -449,12 +816,15 @@ const inputs = {
           {
             name: spell.name,
             bonus: 0,
-            damage: calculateDamage(spell, 0, { faithfulness: faithfulnessActive })
+            damage: calculateDamage(spell, 0, { faithfulness: faithfulnessActive }),
+            events: buildSingleEvent(calculateDamage(spell, 0, { faithfulness: faithfulnessActive }))
           }
         ];
       }
 
-      damageList.innerHTML = results.map((result, index) => {
+      results = prepareSelectableResults(spell, results);
+
+      damageList.innerHTML = results.map((result) => {
         const bonusText = result.bonus === 0
           ? "+0%"
           : `${result.bonus > 0 ? "+" : ""}${Math.round(result.bonus * 100)}%`;
@@ -472,7 +842,7 @@ const inputs = {
           : floorToOneDecimal(result.damage);
 
         return `
-          <div class="damage-row ${index === 0 ? "primary" : ""}">
+          <div class="damage-row ${result.key === selectedResultKey ? "primary" : ""}" data-result-key="${result.key}">
             <div class="part">
               <strong>${result.name}</strong>
               ${hitLocationText}
@@ -484,50 +854,7 @@ const inputs = {
         `;
       }).join("");
 
-      if (spell.type === "fireball") {
-        const directTotal = results.find((result) => result.kind === "directTotal")?.damage || 0;
-        selectedLabel.textContent = "Direct Hit + Burn Damage";
-        mainTotal.textContent = floorToOneDecimal(directTotal);
-        updateHpBar();
-        return;
-      }
-
-      if (
-        spell.dot
-        || spell.type === "damageOverTime"
-        || spell.type === "healingOverTime"
-        || spell.type === "instantHealing"
-        || spell.type === "clericHealingOverTime"
-        || spell.type === "clericDamageOverTime"
-      ) {
-        const combinedDamage = results.reduce((total, result) => {
-          if (result.tickOnly) {
-            return total;
-          }
-
-          return total + result.damage;
-        }, 0);
-        if (
-          spell.type === "healingOverTime"
-          || spell.type === "instantHealing"
-          || spell.type === "clericHealingOverTime"
-        ) {
-          selectedLabel.textContent = "Total Healing";
-        } else {
-          selectedLabel.textContent = spell.dot && inputs.characterClass.value === "wizard"
-            ? "Initial Hit + Burn Damage"
-            : spell.dot ? "Initial Hit + Damage Over Time" : "Total Damage Over Time";
-        }
-
-        mainTotal.textContent = floorToOneDecimal(combinedDamage);
-        updateHpBar();
-        return;
-      }
-
-      const selectedResult = results.find((result) => result.name === "Body") || results[0];
-      selectedLabel.textContent = spell.isProjectile ? "Selected Result: Body" : "Selected Result";
-      mainTotal.textContent = floorToOneDecimal(selectedResult.damage);
-      updateHpBar();
+      selectResult(selectedResultKey);
     }
 
     Object.values(inputs).forEach((input) => {
@@ -548,12 +875,26 @@ const inputs = {
       renderResults();
     });
 
+    inputs.spell.addEventListener("change", updateSelectIcons);
+
+    damageList.addEventListener("click", (event) => {
+      const row = event.target.closest(".damage-row");
+
+      if (!row) {
+        return;
+      }
+
+      selectResult(row.dataset.resultKey);
+    });
+
     openHpView.addEventListener("click", showHpView);
     showDamageDealt.addEventListener("click", applyHpDamage);
     backToCalculator.addEventListener("click", showCalculatorView);
     targetHp.addEventListener("input", resetHpSimulation);
     targetHp.addEventListener("change", resetHpSimulation);
+    skipAnimation.addEventListener("change", skipActiveHpAnimation);
 
     applyDefaultValues();
     updateSpellOptions();
+    updateSelectIcons();
     renderResults();

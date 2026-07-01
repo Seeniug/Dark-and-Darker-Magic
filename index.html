@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dark and Darker Bench Magical Calculator</title>
+  <title>Darker Calculator</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,11 +11,14 @@
     <header>
       <div class="title-row">
         <h1>Darker Calculator</h1>
-        <select class="class-select" id="characterClass" aria-label="Character class">
-          <option value="warlock">Warlock</option>
-          <option value="wizard">Wizard</option>
-          <option value="cleric">Cleric</option>
-        </select>
+        <div class="icon-select class-select-wrap">
+          <img class="select-icon hidden" id="classIcon" alt="" aria-hidden="true">
+          <select class="class-select" id="characterClass" aria-label="Character class">
+            <option value="warlock">Warlock</option>
+            <option value="wizard">Wizard</option>
+            <option value="cleric">Cleric</option>
+          </select>
+        </div>
       </div>
     </header>
 
@@ -28,7 +31,10 @@
         <div class="controls">
           <div class="field full">
             <label for="spell">Spell Selection</label>
-            <select id="spell"></select>
+            <div class="icon-select">
+              <img class="select-icon hidden" id="spellIcon" alt="" aria-hidden="true">
+              <select id="spell"></select>
+            </div>
           </div>
 
           <div class="field" data-input="weaponDamage">
@@ -48,7 +54,7 @@
 
           <div class="field" data-input="magicalHealing">
             <label for="magicalHealing">Magical Healing</label>
-            <input id="magicalHealing" type="number" value="0" step="0.1">
+            <input id="magicalHealing" type="number" value="10" step="0.1">
           </div>
 
           <div class="field" data-input="mdr">
@@ -100,12 +106,27 @@
               <span>CoW</span>
               <input id="cow" type="checkbox">
             </label>
+
+            <label class="checkbox-field" for="darkEnhancement" data-option="darkEnhancement">
+              <span>Dark Enhancement</span>
+              <input id="darkEnhancement" type="checkbox">
+            </label>
+
+            <div class="option-number-field" data-option="soulCollector">
+              <label for="soulCollector">Soul Collector</label>
+              <input id="soulCollector" type="number" value="0" min="0" max="3" step="1">
+            </div>
           </div>
 
           <div class="class-options" id="wizardOptions">
             <label class="checkbox-field" for="fireMastery" data-option="fireMastery">
               <span>Fire Mastery</span>
               <input id="fireMastery" type="checkbox">
+            </label>
+
+            <label class="checkbox-field" for="arcaneMastery" data-option="arcaneMastery">
+              <span>Arcane Mastery</span>
+              <input id="arcaneMastery" type="checkbox">
             </label>
           </div>
 
@@ -143,7 +164,7 @@
           <label for="targetHp">Target HP</label>
           <input id="targetHp" type="number" value="150" min="1" step="1">
         </div>
-        <div class="hp-readout" id="hpReadout">Damage: 0.0 / HP remaining: 100.0</div>
+        <div class="hp-readout" id="hpReadout">Damage: 0.0 / HP remaining: 150.0</div>
       </div>
 
       <div class="hp-bar-shell" aria-label="Target HP bar">
@@ -155,6 +176,10 @@
 
       <div class="hp-actions">
         <button class="back-button" id="showDamageDealt" type="button">Show damage dealt</button>
+        <label class="checkbox-field" for="skipAnimation">
+          <span>Skip animation</span>
+          <input id="skipAnimation" type="checkbox">
+        </label>
         <button class="back-button" id="backToCalculator" type="button">Back to calculator</button>
       </div>
     </section>

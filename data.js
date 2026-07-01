@@ -33,12 +33,32 @@ const classSpells = {
           baseDamage: 20,
           scaling: 1,
           isProjectile: true,
+          darkEnhancement: true,
+          soulCollector: true,
           visibleInputs: [
             "weaponDamage",
             "magicPower",
             "additionalDamage",
             "mdr",
             "projectileReduction",
+            "penetration",
+            "cow",
+            "darkEnhancement",
+            "soulCollector"
+          ]
+        },
+        {
+          id: "blowOfCorruption",
+          name: "Blow Of Corruption",
+          label: "Blow Of Corruption",
+          baseDamage: 12,
+          scaling: 1,
+          isProjectile: false,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
             "penetration",
             "cow"
           ]
@@ -94,6 +114,62 @@ const classSpells = {
           ]
         },
         {
+          id: "magicMissile",
+          name: "Magic Missile",
+          label: "Magic Missile",
+          type: "magicMissile",
+          baseDamage: 10,
+          scaling: 0.5,
+          isProjectile: true,
+          missileCount: 10,
+          arcaneMastery: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "projectileReduction",
+            "penetration",
+            "arcaneMastery"
+          ]
+        },
+        {
+          id: "lightningStrike",
+          name: "Lightning Strike",
+          label: "Lightning Strike",
+          baseDamage: 30,
+          scaling: 1,
+          isProjectile: false,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration"
+          ]
+        },
+        {
+          id: "chainLightning",
+          name: "Chain Lightning",
+          label: "Chain Lightning",
+          type: "chainLightning",
+          scaling: 1,
+          isProjectile: false,
+          hits: [
+            { name: "First Target", baseDamage: 30 },
+            { name: "Second Target", baseDamage: 25 },
+            { name: "Third Target", baseDamage: 25 },
+            { name: "Last Target", baseDamage: 20 }
+          ],
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration"
+          ]
+        },
+        {
           id: "zap",
           name: "Zap",
           label: "Zap",
@@ -119,6 +195,37 @@ const classSpells = {
             durationSeconds: 1,
             perSecond: true
           }
+        },
+        {
+          id: "ignite",
+          name: "Ignite",
+          label: "Ignite",
+          type: "ignite",
+          fireMastery: true,
+          initial: {
+            name: "Initial Hit",
+            baseDamage: 5,
+            scaling: 0.5,
+            isProjectile: false
+          },
+          dot: {
+            name: "Burn Damage",
+            baseDamage: 1,
+            fireMasteryBaseBonus: 2,
+            scaling: 0.5,
+            isProjectile: false,
+            durationSeconds: 1,
+            perSecond: true
+          },
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration",
+            "debuffDuration",
+            "fireMastery"
+          ]
         },
         {
           id: "fireball",
@@ -192,6 +299,40 @@ const classSpells = {
           name: "Holy Strike",
           label: "Holy Strike",
           baseDamage: 20,
+          scaling: 1,
+          isProjectile: false,
+          faithfulness: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration",
+            "faithfulness"
+          ]
+        },
+        {
+          id: "judgement",
+          name: "Judgement",
+          label: "Judgement",
+          baseDamage: 25,
+          scaling: 1,
+          isProjectile: false,
+          faithfulness: true,
+          visibleInputs: [
+            "weaponDamage",
+            "magicPower",
+            "additionalDamage",
+            "mdr",
+            "penetration",
+            "faithfulness"
+          ]
+        },
+        {
+          id: "smite",
+          name: "Smite",
+          label: "Smite",
+          baseDamage: 10,
           scaling: 1,
           isProjectile: false,
           faithfulness: true,
