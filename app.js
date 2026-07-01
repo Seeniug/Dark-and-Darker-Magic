@@ -410,7 +410,8 @@ const inputs = {
             bonus: 0,
             damage: tickDamage,
             tickOnly: true,
-            effectiveTicks
+            effectiveTicks,
+            hideTickCount: spell.id === "locustSwarm"
           }
         ];
       } else if (spell.type === "damageOverTime") {
@@ -460,7 +461,7 @@ const inputs = {
         const hitLocationText = result.isProjectileResult
           ? `<span>Hit location bonus: ${bonusText}</span>`
           : "";
-        const tickText = result.tickOnly
+        const tickText = result.tickOnly && !result.hideTickCount
           ? `<span>Active ticks after debuff duration: ${floorToOneDecimal(result.effectiveTicks)}</span>`
           : "";
         const noteText = result.note

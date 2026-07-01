@@ -248,6 +248,7 @@ const classSpells = {
           type: "clericDamageOverTime",
           baseDamage: 13,
           scaling: 1,
+          faithfulness: true,
           durationSeconds: 6,
           tickInterval: 0.1,
           ignoresDebuffDuration: true,
@@ -256,7 +257,8 @@ const classSpells = {
             "magicPower",
             "additionalDamage",
             "mdr",
-            "penetration"
+            "penetration",
+            "faithfulness"
           ]
         },
         {
@@ -268,13 +270,13 @@ const classSpells = {
           scaling: 0.5,
           durationSeconds: 6,
           tickInterval: 1,
+          ignoresDebuffDuration: true,
           visibleInputs: [
             "weaponDamage",
             "magicPower",
             "additionalDamage",
             "mdr",
-            "penetration",
-            "debuffDuration"
+            "penetration"
           ]
         }
       ]
