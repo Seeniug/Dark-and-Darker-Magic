@@ -419,7 +419,12 @@ const classSpells = {
             "mdr",
             "penetration"
           ]
+        },
+        {
+          id: "smite",
+          
         }
+
       ]
     };
 

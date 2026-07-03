@@ -373,22 +373,30 @@ const inputs = {
       return [{ damage, delayMs: 0 }];
     }
 
+    function getCompletedTicks(rawTicks) {
+      const tickGrace = 0.05;
+      return Math.floor(Math.max(0, rawTicks) + tickGrace);
+    }
+
+    function getDebuffAdjustedTicks(totalDuration, debuffDurationReduction, tickInterval = 1) {
+      const baseTicks = getCompletedTicks(totalDuration / tickInterval);
+
+      if (debuffDurationReduction <= 0) {
+        return getCompletedTicks((totalDuration * (1 - debuffDurationReduction)) / tickInterval);
+      }
+
+      const removedTicks = getCompletedTicks((totalDuration * debuffDurationReduction) / tickInterval);
+      return Math.max(0, baseTicks - removedTicks);
+    }
+
     function buildTickEvents(tickDamage, effectiveTicks, intervalMs, firstDelayMs = 0) {
       const events = [];
-      const fullTicks = Math.floor(effectiveTicks);
-      const partialTick = effectiveTicks - fullTicks;
+      const fullTicks = getCompletedTicks(effectiveTicks);
 
       for (let index = 0; index < fullTicks; index += 1) {
         events.push({
           damage: tickDamage,
           delayMs: index === 0 ? firstDelayMs : intervalMs
-        });
-      }
-
-      if (partialTick > 0) {
-        events.push({
-          damage: tickDamage * partialTick,
-          delayMs: events.length === 0 ? firstDelayMs : intervalMs
         });
       }
 
@@ -525,7 +533,7 @@ const inputs = {
       } else if (spell.type === "ignite") {
         const igniteLocations = hitLocations.filter((location) => location.name === "Head" || location.name === "Body");
         const dotDuration = getEffectiveDotDuration(spell.dot.durationSeconds, fireMasteryActive);
-        const effectiveTicks = Math.max(0, dotDuration * (1 - debuffDurationReduction));
+        const effectiveTicks = getDebuffAdjustedTicks(dotDuration, debuffDurationReduction);
         const extraBaseDamage = fireMasteryActive ? (spell.dot.fireMasteryBaseBonus || 0) : 0;
 
         results = igniteLocations.flatMap((location) => {
@@ -572,7 +580,7 @@ const inputs = {
       } else if (spell.type === "fireball") {
         const dotDuration = getEffectiveDotDuration(spell.dot.durationSeconds, fireMasteryActive);
         const tickDamage = getWizardBurnTickDamage(spell.dot, fireMasteryActive);
-        const effectiveTicks = Math.max(0, dotDuration * (1 - debuffDurationReduction));
+        const effectiveTicks = getDebuffAdjustedTicks(dotDuration, debuffDurationReduction);
 
         results = [
           ...hitLocations.map((location) => ({
@@ -649,8 +657,8 @@ const inputs = {
         const dotDamage = calculateDamage(spell.dot, 0, { fireMastery: fireMasteryActive });
         const tickDamage = inputs.characterClass.value === "wizard" && spell.dot.perSecond
           ? getWizardBurnTickDamage(spell.dot, fireMasteryActive)
-          : spell.dot.perSecond ? dotDamage : dotDamage / (spell.dot.durationSeconds * durationMultiplier);
-        const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
+          : spell.dot.perSecond ? dotDamage : dotDamage / spell.dot.durationSeconds;
+        const effectiveTicks = getDebuffAdjustedTicks(totalDuration, debuffDurationReduction);
 
         results = [
           {
@@ -693,7 +701,7 @@ const inputs = {
         const baseDuration = source === "sacrifice" ? 12 : 8;
         const durationMultiplier = inputs.curseMastery.checked ? 1.3 : 1;
         const totalDuration = baseDuration * durationMultiplier;
-        const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
+        const effectiveTicks = getCompletedTicks(totalDuration * (1 - debuffDurationReduction));
         const magicPowerBonus = percentValue(inputs.magicPower);
         const magicalHealing = numberValue(inputs.magicalHealing);
         const vampirismMultiplier = inputs.vampirism.checked ? 1.2 : 1;
@@ -732,7 +740,7 @@ const inputs = {
         ];
       } else if (spell.type === "clericHealingOverTime") {
         const healingPerTick = calculateHealing(spell);
-        const effectiveTicks = spell.durationSeconds;
+        const effectiveTicks = getCompletedTicks(spell.durationSeconds);
         const totalHealing = healingPerTick * effectiveTicks;
 
         results = [
@@ -754,9 +762,10 @@ const inputs = {
           }
         ];
       } else if (spell.type === "clericDamageOverTime") {
-        const debuffMultiplier = spell.ignoresDebuffDuration ? 1 : (1 - debuffDurationReduction);
-        const totalDuration = Math.max(0, spell.durationSeconds * debuffMultiplier);
-        const effectiveTicks = totalDuration / spell.tickInterval;
+        const totalDuration = spell.durationSeconds;
+        const effectiveTicks = spell.ignoresDebuffDuration
+          ? getCompletedTicks(totalDuration / spell.tickInterval)
+          : getDebuffAdjustedTicks(totalDuration, debuffDurationReduction, spell.tickInterval);
         const damagePerSecond = calculateDamage(spell, 0, { faithfulness: faithfulnessActive });
         const tickDamage = damagePerSecond * spell.tickInterval;
         const totalDamage = tickDamage * effectiveTicks;
@@ -781,7 +790,7 @@ const inputs = {
       } else if (spell.type === "damageOverTime") {
         const durationMultiplier = inputs.curseMastery.checked ? 1.3 : 1;
         const totalDuration = spell.durationSeconds * durationMultiplier;
-        const effectiveTicks = Math.max(0, totalDuration * (1 - debuffDurationReduction));
+        const effectiveTicks = getDebuffAdjustedTicks(totalDuration, debuffDurationReduction);
         const tickDamage = spell.damagePerSecond * getEffectiveMdrMultiplier();
         const totalDamage = tickDamage * effectiveTicks;
 
@@ -832,7 +841,7 @@ const inputs = {
           ? `<span>Hit location bonus: ${bonusText}</span>`
           : "";
         const tickText = result.tickOnly && !result.hideTickCount
-          ? `<span>Active ticks after debuff duration: ${floorToOneDecimal(result.effectiveTicks)}</span>`
+          ? `<span>Active ticks after debuff duration: ${result.effectiveTicks}</span>`
           : "";
         const noteText = result.note
           ? `<span>${result.note}</span>`
